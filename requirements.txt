@@ -1,0 +1,24 @@
+# STT
+faster-whisper>=1.0.0
+
+# Translation
+transformers>=4.40.0
+sentencepiece>=0.2.0
+sacremoses>=0.1.0
+
+# TTS
+piper-tts>=1.2.0
+
+# Audio
+sounddevice>=0.4.6
+soundfile>=0.12.1
+
+# Input
+keyboard>=0.13.5
+
+# Config
+pydantic-settings>=2.0.0
+
+# Torch — installed separately on Jetson via JetPack/pip wheel
+# See: https://developer.nvidia.com/embedded/jetpack
+# torch>=2.0.0

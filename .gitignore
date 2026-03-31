@@ -1,0 +1,23 @@
+# Environment
+.env
+
+# Models (large binary files — download via scripts/download_models.sh)
+models/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
