@@ -15,6 +15,9 @@ import argparse
 import logging
 import threading
 
+import numpy as np
+import sounddevice as sd
+
 from app.audio_handler import list_devices, play_audio_bytes, record_while_held
 from app.config import settings
 from app.input_handler import KeyboardInputHandler
@@ -83,6 +86,18 @@ def run_channel(
             log.error(f"[{name}] Error: {e}", exc_info=True)
 
 
+def _play_ready_tone(device: str) -> None:
+    """Play a short 440Hz beep to signal the device is ready."""
+    try:
+        device_info = sd.query_devices(device, "output")
+        sr = int(device_info["default_samplerate"])
+        t = np.linspace(0, 0.2, int(sr * 0.2), endpoint=False)
+        tone = (np.sin(2 * np.pi * 440 * t) * 0.3).astype(np.float32)
+        sd.play(tone, samplerate=sr, device=device, blocking=True)
+    except Exception:
+        pass  # Don't block startup if a card has an issue
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--list-devices", action="store_true", help="List audio devices and exit")
@@ -95,7 +110,18 @@ def main() -> None:
     log.info("Starting Jetson Translator")
     log.info(f"  EN card: {settings.sound_card_en}  ZH card: {settings.sound_card_zh}")
     log.info(f"  Keys: EN={settings.key_record_en}  ZH={settings.key_record_zh}")
-    log.info("Press Ctrl+C to quit")
+
+    log.info("Loading models...")
+    # Pre-load all models so the first keypress is fast
+    transcribe(np.zeros(16000, dtype=np.float32), language="en")
+    translate("hello", src_lang="en", tgt_lang="zh")
+    synthesize("ready", language="en")
+    log.info("Models loaded.")
+
+    # Play a short ready beep on each card so the user knows it's live
+    _play_ready_tone(settings.sound_card_en)
+    _play_ready_tone(settings.sound_card_zh)
+    log.info(f"Ready — hold '{settings.key_record_en}' for EN→ZH, '{settings.key_record_zh}' for ZH→EN. Ctrl+C to quit.")
 
     input_handler = KeyboardInputHandler()
     stop_app = threading.Event()
