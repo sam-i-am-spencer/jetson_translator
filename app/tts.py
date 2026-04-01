@@ -8,6 +8,7 @@ Expected layout:
   models/piper/zh_CN-huayan-medium.onnx.json
 """
 import io
+import wave
 from pathlib import Path
 
 from piper import PiperVoice
@@ -35,9 +36,8 @@ def synthesize(text: str, language: str) -> bytes:
     voice = _get_voice(voice_name)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)  # 16-bit
+        wav_file.setframerate(voice.config.sample_rate)
         voice.synthesize(text, wav_file)
     return buf.getvalue()
-
-
-# wave is used inside synthesize — import at top level
-import wave  # noqa: E402 (kept here to avoid confusion with stdlib shadowing)
