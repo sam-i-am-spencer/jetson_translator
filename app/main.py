@@ -54,7 +54,7 @@ def run_channel(
             log.info(f"[{name}] Recording...")
             audio = record_while_held(
                 device=record_device,
-                sample_rate=settings.sample_rate,
+                target_sample_rate=settings.sample_rate,
                 channels=settings.audio_channels,
                 stop_event=stop_recording,
             )
