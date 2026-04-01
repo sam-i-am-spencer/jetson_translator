@@ -1,46 +1,48 @@
 """
-Translation using Helsinki-NLP opus-mt models via transformers.
-Models are downloaded on first use and cached in translation_models_dir.
-  EN→ZH: Helsinki-NLP/opus-mt-en-zh  (outputs Simplified, converted to Traditional via opencc)
-  ZH→EN: Helsinki-NLP/opus-mt-zh-en  (accepts Traditional Chinese input)
+Translation using Meta's NLLB-200 (No Language Left Behind) model.
+Model is downloaded on first use and cached in translation_models_dir.
+  EN→ZH: eng_Latn → zho_Hant (Traditional Chinese, direct — no conversion needed)
+  ZH→EN: zho_Hant → eng_Latn
 """
-import opencc
-from transformers import MarianMTModel, MarianTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from app.config import settings
 
-_s2twp = opencc.OpenCC("s2twp")  # Simplified → Traditional Chinese (Taiwan)
+NLLB_MODEL = "facebook/nllb-200-distilled-600M"
 
-_pipelines: dict[str, tuple[MarianTokenizer, MarianMTModel]] = {}
-
-MODEL_IDS = {
-    ("en", "zh"): "Helsinki-NLP/opus-mt-en-zh",
-    ("zh", "en"): "Helsinki-NLP/opus-mt-zh-en",
+# Map our internal lang codes to NLLB language codes
+LANG_CODES = {
+    "en": "eng_Latn",
+    "zh": "zho_Hant",  # Traditional Chinese
 }
 
+_model = None
+_tokenizer = None
 
-def _get_pipeline(src: str, tgt: str) -> tuple[MarianTokenizer, MarianMTModel]:
-    key = (src, tgt)
-    if key not in _pipelines:
-        model_id = MODEL_IDS[key]
-        tokenizer = MarianTokenizer.from_pretrained(
-            model_id, cache_dir=settings.translation_models_dir
+
+def _get_model():
+    global _model, _tokenizer
+    if _model is None:
+        _tokenizer = AutoTokenizer.from_pretrained(
+            NLLB_MODEL, cache_dir=settings.translation_models_dir
         )
-        model = MarianMTModel.from_pretrained(
-            model_id, cache_dir=settings.translation_models_dir
+        _model = AutoModelForSeq2SeqLM.from_pretrained(
+            NLLB_MODEL, cache_dir=settings.translation_models_dir
         )
-        _pipelines[key] = (tokenizer, model)
-    return _pipelines[key]
+    return _tokenizer, _model
 
 
 def translate(text: str, src_lang: str, tgt_lang: str) -> str:
     """Translate text. src_lang/tgt_lang: 'en' or 'zh'."""
     if not text:
         return ""
-    tokenizer, model = _get_pipeline(src_lang, tgt_lang)
-    inputs = tokenizer([text], return_tensors="pt", padding=True, truncation=True)
-    outputs = model.generate(**inputs)
-    result = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    if tgt_lang == "zh":
-        result = _s2twp.convert(result)
-    return result
+    tokenizer, model = _get_model()
+    src_code = LANG_CODES[src_lang]
+    tgt_code = LANG_CODES[tgt_lang]
+    inputs = tokenizer(text, return_tensors="pt", src_lang=src_code)
+    outputs = model.generate(
+        **inputs,
+        forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_code),
+        max_length=400,
+    )
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)

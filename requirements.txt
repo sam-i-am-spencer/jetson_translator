@@ -5,7 +5,6 @@ faster-whisper>=1.0.0
 transformers>=4.40.0,<5.0.0
 sentencepiece>=0.2.0
 sacremoses>=0.1.0
-opencc-python-reimplemented>=0.1.7  # Simplified->Traditional Chinese conversion
 
 # TTS
 piper-tts>=1.2.0
