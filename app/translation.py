@@ -39,7 +39,8 @@ def translate(text: str, src_lang: str, tgt_lang: str) -> str:
     tokenizer, model = _get_model()
     src_code = LANG_CODES[src_lang]
     tgt_code = LANG_CODES[tgt_lang]
-    inputs = tokenizer(text, return_tensors="pt", src_lang=src_code)
+    tokenizer.src_lang = src_code
+    inputs = tokenizer(text, return_tensors="pt")
     outputs = model.generate(
         **inputs,
         forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_code),
