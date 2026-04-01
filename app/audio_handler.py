@@ -28,11 +28,14 @@ def record_audio(device: str, sample_rate: int, channels: int) -> np.ndarray:
 
 def record_while_held(
     device: str,
-    sample_rate: int,
+    target_sample_rate: int,
     channels: int,
     stop_event,
 ) -> np.ndarray:
-    """Record from device until stop_event is set. Blocks. Returns float32 array."""
+    """Record from device until stop_event is set. Returns float32 array at target_sample_rate."""
+    device_info = sd.query_devices(device, "input")
+    native_sr = int(device_info["default_samplerate"])
+
     chunks = []
 
     def callback(indata, frames, time, status):
@@ -41,14 +44,18 @@ def record_while_held(
 
     with sd.InputStream(
         device=device,
-        samplerate=sample_rate,
+        samplerate=native_sr,
         channels=channels,
         dtype="float32",
         callback=callback,
     ):
         stop_event.wait()
 
-    return np.concatenate(chunks, axis=0).flatten() if chunks else np.array([], dtype="float32")
+    if not chunks:
+        return np.array([], dtype="float32")
+
+    audio = np.concatenate(chunks, axis=0).flatten()
+    return _resample(audio, native_sr, target_sample_rate)
 
 
 def _resample(data: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
