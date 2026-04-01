@@ -51,11 +51,27 @@ def record_while_held(
     return np.concatenate(chunks, axis=0).flatten() if chunks else np.array([], dtype="float32")
 
 
-def play_audio_bytes(audio_bytes: bytes, device: str, sample_rate: int) -> None:
-    """Play raw PCM bytes (wav) through device."""
+def _resample(data: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
+    """Resample audio using linear interpolation (no extra dependencies)."""
+    if orig_sr == target_sr:
+        return data
+    n_samples = int(len(data) * target_sr / orig_sr)
+    return np.interp(
+        np.linspace(0, len(data) - 1, n_samples),
+        np.arange(len(data)),
+        data,
+    ).astype(np.float32)
+
+
+def play_audio_bytes(audio_bytes: bytes, device: str) -> None:
+    """Play WAV bytes through device, resampling to device native rate if needed."""
     buf = io.BytesIO(audio_bytes)
     data, sr = sf.read(buf, dtype="float32")
-    sd.play(data, samplerate=sr, device=device, blocking=True)
+    device_info = sd.query_devices(device, "output")
+    native_sr = int(device_info["default_samplerate"])
+    if sr != native_sr:
+        data = _resample(data, sr, native_sr)
+    sd.play(data, samplerate=native_sr, device=device, blocking=True)
 
 
 def list_devices() -> None:

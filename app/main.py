@@ -75,7 +75,7 @@ def run_channel(
             audio_bytes = synthesize(translated, language=tgt_lang)
 
             log.info(f"[{name}] Playing on {playback_device}")
-            play_audio_bytes(audio_bytes, device=playback_device, sample_rate=settings.sample_rate)
+            play_audio_bytes(audio_bytes, device=playback_device)
 
         except KeyboardInterrupt:
             break

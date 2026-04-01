@@ -39,5 +39,6 @@ def synthesize(text: str, language: str) -> bytes:
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)  # 16-bit
         wav_file.setframerate(voice.config.sample_rate)
-        voice.synthesize(text, wav_file)
+        for audio_bytes in voice.synthesize_stream_raw(text):
+            wav_file.writeframes(audio_bytes)
     return buf.getvalue()
