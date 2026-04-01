@@ -36,9 +36,5 @@ def synthesize(text: str, language: str) -> bytes:
     voice = _get_voice(voice_name)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)  # 16-bit
-        wav_file.setframerate(voice.config.sample_rate)
-        for audio_bytes in voice.synthesize_stream_raw(text):
-            wav_file.writeframes(audio_bytes)
+        voice.synthesize_wav(text, wav_file)
     return buf.getvalue()
