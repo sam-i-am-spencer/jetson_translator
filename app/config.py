@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # TTS - Chinese: Azure Neural TTS
     azure_tts_key: str = ""
     azure_tts_region: str = "australiaeast"
-    azure_voice_zh: str = "zh-TW-HsiaoChenNeural"
+    azure_voice_zh: str = "zh-TW-YunJheNeural"
 
     # Keyboard input (PTT keys)
     key_record_en: str = "1"  # hold to record English → speak Chinese
