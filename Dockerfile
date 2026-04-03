@@ -18,6 +18,7 @@ WORKDIR /app
 # Install app dependencies (faster-whisper and ctranslate2 already in base image)
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir \
+    --index-url https://pypi.org/simple/ \
     anthropic \
     azure-cognitiveservices-speech \
     piper-tts \
