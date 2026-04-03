@@ -12,18 +12,22 @@ class Settings(BaseSettings):
     audio_channels: int = 1
 
     # STT - faster-whisper
-    whisper_model: str = "base"  # tiny, base, small, medium, large-v3
-    whisper_device: str = "cuda"  # cuda or cpu
-    whisper_compute_type: str = "float16"  # float16 (GPU) or int8 (CPU)
+    whisper_model: str = "small"  # tiny, base, small, medium, large-v3
+    whisper_device: str = "cpu"
+    whisper_compute_type: str = "int8"
     whisper_models_dir: str = "./models/whisper"
 
-    # Translation - Helsinki-NLP opus-mt
-    translation_models_dir: str = "./models/translation"
+    # Translation - Claude API
+    anthropic_api_key: str = ""
 
-    # TTS - piper
+    # TTS - English: piper (local)
     piper_voice_en: str = "en_US-lessac-medium"
-    piper_voice_zh: str = "zh_CN-huayan-medium"
     piper_models_dir: str = "./models/piper"
+
+    # TTS - Chinese: Azure Neural TTS
+    azure_tts_key: str = ""
+    azure_tts_region: str = "australiaeast"
+    azure_voice_zh: str = "zh-TW-HsiaoChenNeural"
 
     # Keyboard input (PTT keys)
     key_record_en: str = "1"  # hold to record English → speak Chinese
