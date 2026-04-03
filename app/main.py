@@ -108,7 +108,8 @@ def main() -> None:
         return
 
     log.info("Starting Jetson Translator")
-    log.info(f"  EN card: {settings.sound_card_en}  ZH card: {settings.sound_card_zh}")
+    log.info(f"  EN mic: {settings.mic_en}  EN out: {settings.out_en}")
+    log.info(f"  ZH mic: {settings.mic_zh}  ZH out: {settings.out_zh}")
     log.info(f"  Keys: EN={settings.key_record_en}  ZH={settings.key_record_zh}")
 
     log.info("Loading models...")
@@ -119,8 +120,8 @@ def main() -> None:
     log.info("Models loaded.")
 
     # Play a short ready beep on each card so the user knows it's live
-    _play_ready_tone(settings.sound_card_en)
-    _play_ready_tone(settings.sound_card_zh)
+    _play_ready_tone(settings.out_en)
+    _play_ready_tone(settings.out_zh)
     log.info(f"Ready — hold '{settings.key_record_en}' for EN→ZH, '{settings.key_record_zh}' for ZH→EN. Ctrl+C to quit.")
 
     input_handler = KeyboardInputHandler()
@@ -131,8 +132,8 @@ def main() -> None:
         name="channel-en",
         kwargs=dict(
             name="EN→ZH",
-            record_device=settings.sound_card_en,
-            playback_device=settings.sound_card_zh,
+            record_device=settings.mic_en,
+            playback_device=settings.out_zh,
             src_lang="en",
             tgt_lang="zh",
             trigger_key=settings.key_record_en,
@@ -146,8 +147,8 @@ def main() -> None:
         name="channel-zh",
         kwargs=dict(
             name="ZH→EN",
-            record_device=settings.sound_card_zh,
-            playback_device=settings.sound_card_en,
+            record_device=settings.mic_zh,
+            playback_device=settings.out_en,
             src_lang="zh",
             tgt_lang="en",
             trigger_key=settings.key_record_zh,

@@ -2,10 +2,12 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Audio device names or ALSA hw strings (e.g. "hw:1,0" or "USB Audio Device")
-    # Run `python -m sounddevice` to list available devices
-    sound_card_en: str = "default"  # English channel: record in, playback out
-    sound_card_zh: str = "default"  # Chinese channel: record in, playback out
+    # Audio device names as seen by PortAudio/sounddevice
+    # Run: python3 -c "import sounddevice; print(sounddevice.query_devices())"
+    mic_en: str = "Blue Snowball"       # English mic input
+    mic_zh: str = "USB PnP Sound Device"  # Chinese mic input (C-Media, lapel mic)
+    out_en: str = "USB PnP Sound Device"  # English speaker output (C-Media)
+    out_zh: str = "USB Audio CODEC"       # Chinese speaker output (TI CODEC)
     sample_rate: int = 16000
     audio_channels: int = 1
 
