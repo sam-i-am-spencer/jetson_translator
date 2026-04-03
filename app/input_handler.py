@@ -1,13 +1,20 @@
 """
 Input handler abstraction.
-Currently implemented with pynput (no root required).
+KeyboardInputHandler uses raw terminal input (termios) — no root or display required.
 To switch to GPIO switches, implement a GPIOInputHandler with the same interface
 and swap it in main.py.
 """
+import os
+import select
+import sys
+import termios
 import threading
+import time
+import tty
 from abc import ABC, abstractmethod
 
-from pynput import keyboard
+# After this many seconds with no keypress autorepeat, treat as released
+_RELEASE_TIMEOUT = 0.15
 
 
 class InputHandler(ABC):
@@ -22,54 +29,70 @@ class InputHandler(ABC):
 
 
 class KeyboardInputHandler(InputHandler):
-    """Push-to-talk using keyboard keys. Works without root via pynput."""
+    """Push-to-talk via raw terminal — no root or X11 required."""
 
     def __init__(self):
-        self._listener = keyboard.Listener(
-            on_press=self._on_press,
-            on_release=self._on_release,
-        )
-        self._listener.start()
+        self._fd = sys.stdin.fileno()
+        self._old_settings = termios.tcgetattr(self._fd)
+        tty.setraw(self._fd)
+
+        self._lock = threading.Lock()
         self._press_events: dict[str, threading.Event] = {}
         self._release_events: dict[str, threading.Event] = {}
-        self._lock = threading.Lock()
+        self._last_seen: dict[str, float] = {}
 
-    def _key_char(self, key) -> str | None:
-        try:
-            return key.char
-        except AttributeError:
-            return None
+        self._reader = threading.Thread(target=self._read_loop, daemon=True)
+        self._reader.start()
 
-    def _on_press(self, key):
-        char = self._key_char(key)
-        if char is None:
-            return
-        with self._lock:
-            if char in self._press_events:
-                self._press_events[char].set()
+    def _read_loop(self) -> None:
+        while True:
+            r, _, _ = select.select([self._fd], [], [], 0.05)
+            now = time.monotonic()
 
-    def _on_release(self, key):
-        char = self._key_char(key)
-        if char is None:
-            return
-        with self._lock:
-            if char in self._release_events:
-                self._release_events[char].set()
+            if r:
+                try:
+                    ch = os.read(self._fd, 1).decode("utf-8", errors="ignore")
+                except OSError:
+                    break
+
+                if ch == "\x03":  # Ctrl+C
+                    with self._lock:
+                        for e in self._release_events.values():
+                            e.set()
+                    raise KeyboardInterrupt
+
+                with self._lock:
+                    self._last_seen[ch] = now
+                    if ch in self._press_events:
+                        self._press_events[ch].set()
+
+            # Detect releases by autorepeat timeout
+            with self._lock:
+                for key, last_time in list(self._last_seen.items()):
+                    if now - last_time > _RELEASE_TIMEOUT:
+                        del self._last_seen[key]
+                        if key in self._release_events:
+                            self._release_events[key].set()
+                            del self._release_events[key]
 
     def wait_for_press(self, key: str) -> threading.Event:
-        """Block until key is pressed, then return an Event that fires on release."""
+        """Block until key is pressed, return an Event that fires on release."""
         press_event = threading.Event()
-        release_event = threading.Event()
         with self._lock:
             self._press_events[key] = press_event
-            self._release_events[key] = release_event
+
         press_event.wait()
+
+        release_event = threading.Event()
         with self._lock:
             del self._press_events[key]
+            self._release_events[key] = release_event
+
         return release_event
 
     def cleanup(self) -> None:
-        self._listener.stop()
+        termios.tcsetattr(self._fd, termios.TCSADRAIN, self._old_settings)
+        print()  # restore cursor to clean line
 
 
 # --- Future GPIO implementation (skeleton) ---
