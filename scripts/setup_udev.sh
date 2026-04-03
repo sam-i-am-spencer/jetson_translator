@@ -16,10 +16,11 @@ RULES_FILE="/etc/udev/rules.d/99-translator-audio.rules"
 
 sudo tee "$RULES_FILE" << 'EOF'
 # Jetson Translator - persistent ALSA names by USB port
-# English card: port 2.4 -> plughw:translator_en,0
+# English mic: port 2.1 -> Blue Snowball (mic_en)
+SUBSYSTEM=="sound", KERNEL=="card*", KERNELS=="1-2.1", ATTR{id}="mic_en"
+# English output card: port 2.4 (translator_en)
 SUBSYSTEM=="sound", KERNEL=="card*", KERNELS=="1-2.4", ATTR{id}="translator_en"
-# Chinese card: port 2.3 -> plughw:translator_zh,0
-# Swap the card in this port freely - name stays stable
+# Chinese card: port 2.3 (translator_zh) - swap freely, name stays stable
 SUBSYSTEM=="sound", KERNEL=="card*", KERNELS=="1-2.3", ATTR{id}="translator_zh"
 EOF
 
