@@ -1,13 +1,13 @@
 """
 Input handler abstraction.
-Currently implemented with the `keyboard` library (push-to-talk via keyboard keys).
+Currently implemented with pynput (no root required).
 To switch to GPIO switches, implement a GPIOInputHandler with the same interface
 and swap it in main.py.
 """
 import threading
 from abc import ABC, abstractmethod
 
-import keyboard
+from pynput import keyboard
 
 
 class InputHandler(ABC):
@@ -22,22 +22,54 @@ class InputHandler(ABC):
 
 
 class KeyboardInputHandler(InputHandler):
-    """Push-to-talk using keyboard keys. Requires root/sudo on Linux."""
+    """Push-to-talk using keyboard keys. Works without root via pynput."""
+
+    def __init__(self):
+        self._listener = keyboard.Listener(
+            on_press=self._on_press,
+            on_release=self._on_release,
+        )
+        self._listener.start()
+        self._press_events: dict[str, threading.Event] = {}
+        self._release_events: dict[str, threading.Event] = {}
+        self._lock = threading.Lock()
+
+    def _key_char(self, key) -> str | None:
+        try:
+            return key.char
+        except AttributeError:
+            return None
+
+    def _on_press(self, key):
+        char = self._key_char(key)
+        if char is None:
+            return
+        with self._lock:
+            if char in self._press_events:
+                self._press_events[char].set()
+
+    def _on_release(self, key):
+        char = self._key_char(key)
+        if char is None:
+            return
+        with self._lock:
+            if char in self._release_events:
+                self._release_events[char].set()
 
     def wait_for_press(self, key: str) -> threading.Event:
         """Block until key is pressed, then return an Event that fires on release."""
-        keyboard.wait(key)  # blocks until pressed
-        stop_event = threading.Event()
-
-        def on_release(e):
-            if e.name == key:
-                stop_event.set()
-
-        keyboard.on_release(on_release)
-        return stop_event
+        press_event = threading.Event()
+        release_event = threading.Event()
+        with self._lock:
+            self._press_events[key] = press_event
+            self._release_events[key] = release_event
+        press_event.wait()
+        with self._lock:
+            del self._press_events[key]
+        return release_event
 
     def cleanup(self) -> None:
-        keyboard.unhook_all()
+        self._listener.stop()
 
 
 # --- Future GPIO implementation (skeleton) ---

@@ -15,7 +15,7 @@ sounddevice>=0.4.6
 soundfile>=0.12.1
 
 # Input
-keyboard>=0.13.5
+pynput>=1.7.0
 
 # Config
 pydantic-settings>=2.0.0
