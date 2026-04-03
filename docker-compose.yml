@@ -1,25 +1,16 @@
 services:
   translator:
     build: .
-    image: jetson_translator
+    image: jetson_translator_gpu
     container_name: jetson_translator
     restart: unless-stopped
     env_file: .env
-    # Run as privileged for keyboard access and audio
-    privileged: true
+    runtime: nvidia
     network_mode: host
+    privileged: true
     volumes:
       - ./models:/app/models
     devices:
-      # Pass through all ALSA sound cards
       - /dev/snd:/dev/snd
-    environment:
-      - PULSE_RUNTIME_PATH=/run/user/1000/pulse
-    # For keyboard input, stdin must be a TTY
     stdin_open: true
     tty: true
-
-  # Future: add an HA voice assistant service here
-  # voice_assistant:
-  #   build: ./voice_assistant
-  #   ...
