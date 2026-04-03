@@ -11,7 +11,7 @@ Two USB sound cards are used simultaneously — speak into one, hear the transla
 | EN→ZH | `SOUND_CARD_EN` | English | Chinese | `SOUND_CARD_ZH` |
 | ZH→EN | `SOUND_CARD_ZH` | Chinese | English | `SOUND_CARD_EN` |
 
-**Pipeline:** Audio → [faster-whisper STT] → [Helsinki-NLP translation] → [piper TTS] → Audio
+**Pipeline:** Audio → [faster-whisper STT] → [Claude API translation] → [Azure Neural TTS / piper TTS] → Audio
 
 ## Hardware
 
@@ -44,7 +44,7 @@ chmod +x scripts/download_models.sh
 ./scripts/download_models.sh
 ```
 
-Translation (Helsinki-NLP) and Whisper models download automatically on first run.
+Whisper models download automatically on first run.
 
 ### 3a. Run with Docker (recommended)
 
@@ -77,14 +77,17 @@ Keys are configurable via `KEY_RECORD_EN` / `KEY_RECORD_ZH` in `.env`.
 | `WHISPER_MODEL` | `base` | Whisper model size (`tiny`→`large-v3`) |
 | `WHISPER_DEVICE` | `cuda` | `cuda` or `cpu` |
 | `WHISPER_COMPUTE_TYPE` | `float16` | `float16` (GPU) or `int8` (CPU) |
-| `PIPER_VOICE_EN` | `en_US-lessac-medium` | English TTS voice |
-| `PIPER_VOICE_ZH` | `zh_CN-huayan-medium` | Chinese TTS voice |
+| `ANTHROPIC_API_KEY` | — | Claude API key for translation |
+| `AZURE_TTS_KEY` | — | Azure Cognitive Services key for Chinese TTS |
+| `AZURE_TTS_REGION` | — | Azure region (e.g. `australiaeast`) |
+| `AZURE_VOICE_ZH` | `zh-TW-HsiaoChenNeural` | Azure Neural voice for Chinese output |
+| `PIPER_VOICE_EN` | `en_US-lessac-medium` | English TTS voice (local) |
 | `KEY_RECORD_EN` | `1` | Push-to-talk key for English |
 | `KEY_RECORD_ZH` | `2` | Push-to-talk key for Chinese |
 
 ## Notes
 
-- **Traditional Chinese input:** faster-whisper transcribes in Traditional Chinese when the input is Traditional Chinese speech. The Helsinki-NLP `opus-mt-zh-en` model handles both simplified and traditional characters.
+- **Traditional Chinese input:** faster-whisper handles Traditional Chinese speech natively with `language='zh'`.
 - **GPIO mode:** `app/input_handler.py` contains a commented `GPIOInputHandler` skeleton. Swap it into `main.py` when moving to physical switches.
 - **Keyboard in Docker:** requires `privileged: true` and a TTY (`stdin_open: true`, `tty: true`).
 - **JetPack version:** update the base image in `Dockerfile` to match your JetPack — check with `cat /etc/nv_tegra_release`.
@@ -92,5 +95,4 @@ Keys are configurable via `KEY_RECORD_EN` / `KEY_RECORD_ZH` in `.env`.
 ## Roadmap
 
 - [ ] GPIO switch support for portable/compact build
-- [ ] Home Assistant integration (voice commands via LLM)
-- [ ] Web status UI
+- [ ] GPU acceleration for Whisper via jetson-containers
