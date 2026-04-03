@@ -18,7 +18,7 @@ def _get_client() -> anthropic.Anthropic:
 
 _LANG_NAMES = {
     "en": "English",
-    "zh": "Traditional Chinese",
+    "zh": "Traditional Chinese (Taiwan)",
 }
 
 _SYSTEM = (
