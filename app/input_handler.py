@@ -13,8 +13,8 @@ import time
 import tty
 from abc import ABC, abstractmethod
 
-# After this many seconds with no keypress autorepeat, treat as released
-_RELEASE_TIMEOUT = 0.15
+# Must be longer than the kernel's initial key-repeat delay (~250 ms default)
+_RELEASE_TIMEOUT = 0.35
 
 
 class InputHandler(ABC):
@@ -34,7 +34,8 @@ class KeyboardInputHandler(InputHandler):
     def __init__(self):
         self._fd = sys.stdin.fileno()
         self._old_settings = termios.tcgetattr(self._fd)
-        tty.setraw(self._fd)
+        # setcbreak: single-char input without needing Enter, but keeps Ctrl+C
+        tty.setcbreak(self._fd)
 
         self._lock = threading.Lock()
         self._press_events: dict[str, threading.Event] = {}
