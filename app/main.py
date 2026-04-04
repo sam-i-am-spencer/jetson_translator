@@ -79,8 +79,10 @@ def run_channel(
             log.info(f"[{name}] Transcribed: {text}")
 
             log.info(f"[{name}] Translating {src_lang}→{tgt_lang}...")
+            input_handler.show_transcript(text)
             translated = translate(text, src_lang=src_lang, tgt_lang=tgt_lang)
             log.info(f"[{name}] Translated: {translated}")
+            input_handler.show_transcript(text, translated)
 
             log.info(f"[{name}] Synthesizing ({tgt_lang})...")
             input_handler.notify("synthesizing")

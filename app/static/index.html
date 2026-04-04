@@ -66,6 +66,18 @@
       cursor: not-allowed;
     }
 
+    #transcript {
+      padding: 14px 16px;
+      border-top: 1px solid #222;
+      min-height: 70px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    #transcript .original  { color: #ccc; }
+    #transcript .arrow     { color: #444; margin: 0 6px; }
+    #transcript .translated { color: #7af; }
+    #transcript.empty      { display: none; }
+
     #dot {
       position: fixed;
       top: 10px;
@@ -95,11 +107,13 @@
   </button>
 </div>
 
+<div id="transcript" class="empty"></div>
 <div id="dot"></div>
 
 <script>
   const statusBar = document.getElementById('status-bar');
   const dot = document.getElementById('dot');
+  const transcript = document.getElementById('transcript');
   const buttons = document.querySelectorAll('.btn');
   let ws, holding = null;
 
@@ -120,6 +134,7 @@
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === 'status') handleStatus(msg.value);
+      if (msg.type === 'transcript') handleTranscript(msg.text, msg.translation);
     };
   }
 
@@ -151,6 +166,12 @@
         setStatus('Busy — wait a moment', 'busy');
         break;
     }
+  }
+
+  function handleTranscript(text, translation) {
+    transcript.classList.remove('empty');
+    transcript.innerHTML = `<span class="original">${text}</span>` +
+      (translation ? `<span class="arrow">→</span><span class="translated">${translation}</span>` : '');
   }
 
   function setStatus(text, cls) {

@@ -70,6 +70,9 @@ class WebInputHandler(InputHandler):
     def notify(self, status: str) -> None:
         self._push({"type": "status", "value": status})
 
+    def show_transcript(self, text: str, translation: str = "") -> None:
+        self._push({"type": "transcript", "text": text, "translation": translation})
+
     def wait_for_press(self, key: str) -> threading.Event:
         press_event = threading.Event()
         with self._lock:
