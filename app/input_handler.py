@@ -27,6 +27,10 @@ class InputHandler(ABC):
     def cleanup(self) -> None:
         ...
 
+    def notify(self, status: str) -> None:
+        """Override to push status updates to clients."""
+        pass
+
 
 class KeyboardInputHandler(InputHandler):
     """Push-to-talk via raw terminal — no root or X11 required."""

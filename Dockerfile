@@ -24,7 +24,9 @@ RUN pip3 install --no-cache-dir \
     piper-tts \
     sounddevice \
     soundfile \
-    pydantic-settings
+    pydantic-settings \
+    fastapi \
+    uvicorn
 
 COPY . .
 

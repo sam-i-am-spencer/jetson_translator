@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Translator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #status-bar {
+      text-align: center;
+      padding: 12px;
+      font-size: 14px;
+      color: #888;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      min-height: 44px;
+    }
+
+    #status-bar.recording { color: #ff4444; }
+    #status-bar.busy      { color: #ffaa00; }
+    #status-bar.working   { color: #4488ff; }
+
+    #buttons {
+      flex: 1;
+      display: flex;
+    }
+
+    .btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      border: none;
+      background: #1a1a1a;
+      color: #fff;
+      transition: background 0.1s;
+      touch-action: none;
+    }
+
+    .btn:first-child { border-right: 1px solid #333; }
+
+    .btn .emoji  { font-size: 56px; }
+    .btn .langs  { font-size: 20px; font-weight: 600; }
+    .btn .hint   { font-size: 13px; color: #555; }
+
+    .btn.active  { background: #3a1a1a; }
+    .btn.active .hint { color: #ff4444; }
+
+    .btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #dot {
+      position: fixed;
+      top: 10px;
+      right: 12px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+    }
+    #dot.connected { background: #44cc44; }
+  </style>
+</head>
+<body>
+
+<div id="status-bar">Connecting…</div>
+
+<div id="buttons">
+  <button class="btn disabled" id="btn-en" data-key="1">
+    <span class="emoji">🇦🇺</span>
+    <span class="langs">EN → ZH</span>
+    <span class="hint">Hold to speak</span>
+  </button>
+  <button class="btn disabled" id="btn-zh" data-key="2">
+    <span class="emoji">🇹🇼</span>
+    <span class="langs">ZH → EN</span>
+    <span class="hint">Hold to speak</span>
+  </button>
+</div>
+
+<div id="dot"></div>
+
+<script>
+  const statusBar = document.getElementById('status-bar');
+  const dot = document.getElementById('dot');
+  const buttons = document.querySelectorAll('.btn');
+  let ws, holding = null;
+
+  function connect() {
+    ws = new WebSocket(`ws://${location.host}/ws`);
+
+    ws.onopen = () => {
+      dot.classList.add('connected');
+    };
+
+    ws.onclose = () => {
+      dot.classList.remove('connected');
+      setStatus('Disconnected — retrying…', '');
+      buttons.forEach(b => b.classList.add('disabled'));
+      setTimeout(connect, 2000);
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'status') handleStatus(msg.value);
+    };
+  }
+
+  function handleStatus(value) {
+    buttons.forEach(b => b.classList.remove('disabled'));
+    statusBar.className = '';
+
+    switch (value) {
+      case 'idle':
+        setStatus('Ready', '');
+        if (holding) {
+          document.getElementById(holding).classList.remove('active');
+          holding = null;
+        }
+        break;
+      case 'recording':
+        setStatus('Recording…', 'recording');
+        break;
+      case 'translating':
+        setStatus('Translating…', 'working');
+        break;
+      case 'synthesizing':
+        setStatus('Synthesizing…', 'working');
+        break;
+      case 'playing':
+        setStatus('Playing…', 'working');
+        break;
+      case 'busy':
+        setStatus('Busy — wait a moment', 'busy');
+        break;
+    }
+  }
+
+  function setStatus(text, cls) {
+    statusBar.textContent = text;
+    statusBar.className = cls;
+  }
+
+  function press(btn) {
+    if (btn.classList.contains('disabled')) return;
+    const key = btn.dataset.key;
+    ws.send(JSON.stringify({ action: 'press', key }));
+    btn.classList.add('active');
+    holding = btn.id;
+  }
+
+  function release(btn) {
+    if (!btn.classList.contains('active')) return;
+    const key = btn.dataset.key;
+    ws.send(JSON.stringify({ action: 'release', key }));
+    btn.classList.remove('active');
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener('mousedown',  () => press(btn));
+    btn.addEventListener('mouseup',    () => release(btn));
+    btn.addEventListener('mouseleave', () => release(btn));
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); press(btn); });
+    btn.addEventListener('touchend',   (e) => { e.preventDefault(); release(btn); });
+    btn.addEventListener('contextmenu',(e) => e.preventDefault());
+  });
+
+  connect();
+</script>
+</body>
+</html>

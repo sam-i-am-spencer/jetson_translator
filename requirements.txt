@@ -14,7 +14,9 @@ azure-cognitiveservices-speech>=1.38.0
 sounddevice>=0.4.6
 soundfile>=0.12.1
 
-# Input — uses stdlib termios, no extra package needed
+# Web UI
+fastapi>=0.110.0
+uvicorn>=0.29.0
 
 # Config
 pydantic-settings>=2.0.0
