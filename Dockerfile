@@ -25,8 +25,8 @@ RUN pip3 install --no-cache-dir \
     sounddevice \
     soundfile \
     pydantic-settings \
-    fastapi \
-    uvicorn
+    "fastapi" \
+    "uvicorn[standard]"
 
 COPY . .
 

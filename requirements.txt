@@ -16,7 +16,7 @@ soundfile>=0.12.1
 
 # Web UI
 fastapi>=0.110.0
-uvicorn>=0.29.0
+uvicorn[standard]>=0.29.0
 
 # Config
 pydantic-settings>=2.0.0
