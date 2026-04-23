@@ -41,11 +41,17 @@ class WebInputHandler(InputHandler):
     async def _broadcast(self, data: dict) -> None:
         async with self._clients_lock:
             clients = list(self._clients)
+        dead = []
         for ws in clients:
             try:
                 await ws.send_json(data)
             except Exception:
-                pass
+                dead.append(ws)
+        if dead:
+            async with self._clients_lock:
+                for ws in dead:
+                    if ws in self._clients:
+                        self._clients.remove(ws)
 
     def on_press(self, key: str) -> bool:
         """Returns True if recording started, False if already busy."""

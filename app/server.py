@@ -27,7 +27,10 @@ def create_app(input_handler) -> FastAPI:
         await input_handler.connect(ws)
         try:
             while True:
-                data = await ws.receive_json()
+                try:
+                    data = await ws.receive_json()
+                except Exception:
+                    break
                 action = data.get("action")
                 key = data.get("key")
                 if action == "press":

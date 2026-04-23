@@ -115,20 +115,24 @@
   const dot = document.getElementById('dot');
   const transcript = document.getElementById('transcript');
   const buttons = document.querySelectorAll('.btn');
-  let ws, holding = null;
+  let ws, holding = null, pingTimer = null;
 
   function connect() {
     ws = new WebSocket(`ws://${location.host}/ws`);
 
     ws.onopen = () => {
       dot.classList.add('connected');
+      pingTimer = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({action: 'ping'}));
+      }, 15000);
     };
 
     ws.onclose = () => {
+      clearInterval(pingTimer);
       dot.classList.remove('connected');
       setStatus('Disconnected — retrying…', '');
       buttons.forEach(b => b.classList.add('disabled'));
-      setTimeout(connect, 2000);
+      setTimeout(connect, 500);
     };
 
     ws.onmessage = (e) => {
