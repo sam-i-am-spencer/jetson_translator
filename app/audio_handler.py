@@ -32,9 +32,12 @@ def record_while_held(
     channels: int,
     stop_event,
 ) -> np.ndarray:
-    """Record from device until stop_event is set. Returns float32 array at target_sample_rate."""
+    """Record from device until stop_event is set. Returns mono float32 array at target_sample_rate."""
     device_info = sd.query_devices(device, "input")
     native_sr = int(device_info["default_samplerate"])
+    # Clamp to what the device actually supports (e.g. stereo-only mics)
+    actual_channels = min(channels, int(device_info["max_input_channels"]))
+    actual_channels = max(actual_channels, 1)
 
     chunks = []
 
@@ -45,7 +48,7 @@ def record_while_held(
     with sd.InputStream(
         device=device,
         samplerate=native_sr,
-        channels=channels,
+        channels=actual_channels,
         dtype="float32",
         callback=callback,
     ):
@@ -54,7 +57,12 @@ def record_while_held(
     if not chunks:
         return np.array([], dtype="float32")
 
-    audio = np.concatenate(chunks, axis=0).flatten()
+    audio = np.concatenate(chunks, axis=0)
+    # Downmix to mono by averaging channels
+    if audio.ndim > 1 and audio.shape[1] > 1:
+        audio = audio.mean(axis=1)
+    else:
+        audio = audio.flatten()
     return _resample(audio, native_sr, target_sample_rate)
 
 

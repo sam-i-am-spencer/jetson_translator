@@ -7,7 +7,7 @@ Two channels run concurrently in separate threads:
   Channel ZH: hold ZH→EN button → record from mic_zh → transcribe (ZH)
               → translate ZH→EN → synthesize EN → play on out_en
 
-Web UI served at http://<jetson-ip>:8080 — open on any phone on the same network.
+Web UI served at http://sam-jetson-orin.local:8080 — open on any phone or laptop on the same network (mDNS, no IP lookup needed).
 
 Usage:
     python -m app.main               # start with web UI
@@ -45,6 +45,7 @@ def run_channel(
     trigger_key: str,
     input_handler,
     stop_app: threading.Event,
+    playback_done: threading.Event,
 ) -> None:
     """Run a single translator channel in a loop until stop_app is set."""
     log.info(f"[{name}] Ready")
@@ -54,6 +55,8 @@ def run_channel(
             stop_recording = input_handler.wait_for_press(trigger_key)
             if stop_app.is_set():
                 break
+
+            playback_done.wait()  # block until any in-progress playback finishes
 
             log.info(f"[{name}] Recording...")
             input_handler.notify("recording")
@@ -90,7 +93,11 @@ def run_channel(
 
             log.info(f"[{name}] Playing on {playback_device}")
             input_handler.notify("playing")
-            play_audio_bytes(audio_bytes, device=playback_device)
+            playback_done.clear()
+            try:
+                play_audio_bytes(audio_bytes, device=playback_device)
+            finally:
+                playback_done.set()
 
             input_handler.notify("idle")
 
@@ -135,6 +142,8 @@ def main() -> None:
 
     input_handler = WebInputHandler()
     stop_app = threading.Event()
+    playback_done = threading.Event()
+    playback_done.set()  # starts in "ready" state
 
     channel_en = threading.Thread(
         target=run_channel,
@@ -149,6 +158,7 @@ def main() -> None:
             trigger_key=settings.key_record_en,
             input_handler=input_handler,
             stop_app=stop_app,
+            playback_done=playback_done,
         ),
     )
     channel_zh = threading.Thread(
@@ -164,13 +174,16 @@ def main() -> None:
             trigger_key=settings.key_record_zh,
             input_handler=input_handler,
             stop_app=stop_app,
+            playback_done=playback_done,
         ),
     )
 
     channel_en.start()
     channel_zh.start()
 
-    log.info(f"Web UI: http://0.0.0.0:{args.port}  (open on your phone)")
+    import socket
+    hostname = socket.gethostname()
+    log.info(f"Web UI: http://{hostname}.local:{args.port}  (any device on the same network)")
 
     try:
         uvicorn.run(create_app(input_handler), host="0.0.0.0", port=args.port, log_level="warning")

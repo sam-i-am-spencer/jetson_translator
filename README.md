@@ -60,7 +60,50 @@ pip3 install -r requirements.txt
 python3 -m app.main
 ```
 
+### GPU setup for Whisper (Jetson Orin Nano)
+
+The standard `pip install ctranslate2` wheel is **CPU-only** — it will not use the Jetson GPU even though `WHISPER_DEVICE=cuda` is set. To enable GPU acceleration for speech-to-text, ctranslate2 must be built from source against the Jetson's CUDA 12.6 toolkit.
+
+> **Important:** Running `pip install -r requirements.txt` will silently overwrite a GPU build with the CPU-only pip wheel. Re-run the build script if this happens.
+
+**Step 1 — install build dependencies (once, requires sudo):**
+
+```bash
+sudo apt install -y cmake cuda-compiler-12-6 libcublas-dev-12-6 libcurand-dev-12-6
+```
+
+**Step 2 — build and install:**
+
+```bash
+chmod +x scripts/build_ctranslate2_jetson.sh
+./scripts/build_ctranslate2_jetson.sh
+```
+
+This takes 20–30 minutes. It builds against CUDA 12.6 (sm_87, Ampere), installs the library to `~/ct2-install`, and registers the shared libraries with ldconfig.
+
+**Step 3 — verify:**
+
+```bash
+python3 -c "import ctranslate2; print(ctranslate2.get_supported_compute_types('cuda'))"
+# Expected: {'float16', 'float32', 'int8', ...}
+```
+
+**Step 4 — configure `.env`:**
+
+```
+WHISPER_DEVICE=cuda
+WHISPER_COMPUTE_TYPE=float16
+```
+
+If you only have the CPU-only wheel, fall back to `WHISPER_DEVICE=cpu` with `WHISPER_COMPUTE_TYPE=int8`.
+
 ## Usage
+
+Open the web UI on any phone or laptop on the same network:
+
+**http://sam-jetson-orin.local:8080**
+
+This uses mDNS — no need to look up the Jetson's IP address. The exact URL is also printed in the app log at startup.
 
 - **Hold `1`** — record in English → hear Chinese translation
 - **Hold `2`** — record in Chinese → hear English translation
@@ -95,4 +138,3 @@ Keys are configurable via `KEY_RECORD_EN` / `KEY_RECORD_ZH` in `.env`.
 ## Roadmap
 
 - [ ] GPIO switch support for portable/compact build
-- [ ] GPU acceleration for Whisper via jetson-containers

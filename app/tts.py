@@ -11,12 +11,14 @@ Expected layout:
 import io
 import wave
 from pathlib import Path
+from xml.sax.saxutils import escape as xml_escape
 
 from piper import PiperVoice
 
 from app.config import settings
 
 _voices: dict[str, PiperVoice] = {}
+_azure_synthesizer = None
 
 
 def _get_voice(voice_name: str) -> PiperVoice:
@@ -31,23 +33,36 @@ def _get_voice(voice_name: str) -> PiperVoice:
     return _voices[voice_name]
 
 
+def _get_azure_synthesizer():
+    global _azure_synthesizer
+    if _azure_synthesizer is None:
+        import azure.cognitiveservices.speech as speechsdk
+        speech_config = speechsdk.SpeechConfig(
+            subscription=settings.azure_tts_key,
+            region=settings.azure_tts_region,
+        )
+        speech_config.speech_synthesis_voice_name = settings.azure_voice_zh
+        speech_config.set_speech_synthesis_output_format(
+            speechsdk.SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm
+        )
+        _azure_synthesizer = speechsdk.SpeechSynthesizer(
+            speech_config=speech_config, audio_config=None
+        )
+    return _azure_synthesizer
+
+
 def _synthesize_azure(text: str) -> bytes:
     """Synthesize Chinese text via Azure Neural TTS. Returns WAV bytes."""
     import azure.cognitiveservices.speech as speechsdk
 
-    speech_config = speechsdk.SpeechConfig(
-        subscription=settings.azure_tts_key,
-        region=settings.azure_tts_region,
+    synthesizer = _get_azure_synthesizer()
+    ssml = (
+        f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-TW">'
+        f'<voice name="{settings.azure_voice_zh}">'
+        f'<prosody rate="{settings.azure_zh_rate}">{xml_escape(text)}</prosody>'
+        f"</voice></speak>"
     )
-    speech_config.speech_synthesis_voice_name = settings.azure_voice_zh
-    speech_config.set_speech_synthesis_output_format(
-        speechsdk.SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm
-    )
-
-    synthesizer = speechsdk.SpeechSynthesizer(
-        speech_config=speech_config, audio_config=None
-    )
-    result = synthesizer.speak_text_async(text).get()
+    result = synthesizer.speak_ssml_async(ssml).get()
 
     if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
         return bytes(result.audio_data)

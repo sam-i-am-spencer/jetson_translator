@@ -4,9 +4,9 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Audio device names as seen by PortAudio/sounddevice
     # Run: python3 -c "import sounddevice; print(sounddevice.query_devices())"
-    mic_en: str = "Blue Snowball"       # English mic input
-    mic_zh: str = "USB PnP Sound Device"  # Chinese mic input (C-Media, lapel mic)
-    out_en: str = "USB PnP Sound Device"  # English speaker output (C-Media)
+    mic_en: str = "AB13X USB Audio"     # English mic input (USB, stereo)
+    mic_zh: str = "UACDemoV1.0"        # Chinese mic input (USB, mono)
+    out_en: str = "USB Audio CODEC"       # English speaker output
     out_zh: str = "USB Audio CODEC"       # Chinese speaker output (TI CODEC)
     sample_rate: int = 16000
     audio_channels: int = 1
@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     azure_tts_key: str = ""
     azure_tts_region: str = "australiaeast"
     azure_voice_zh: str = "zh-TW-YunJheNeural"
+    azure_zh_rate: str = "-30%"  # prosody rate: e.g. "-30%", "slow", "0.8"
 
     # Keyboard input (PTT keys)
     key_record_en: str = "1"  # hold to record English → speak Chinese
