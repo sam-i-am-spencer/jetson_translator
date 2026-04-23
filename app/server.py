@@ -15,7 +15,7 @@ def create_app(input_handler) -> FastAPI:
 
     @app.on_event("startup")
     async def _startup():
-        input_handler.set_loop(asyncio.get_event_loop())
+        input_handler.set_loop(asyncio.get_running_loop())
 
     @app.get("/")
     async def index():

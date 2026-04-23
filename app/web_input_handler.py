@@ -20,26 +20,26 @@ class WebInputHandler(InputHandler):
         self._busy = False
         self._loop: asyncio.AbstractEventLoop | None = None
         self._clients: list = []
-        self._clients_lock = threading.Lock()
+        self._clients_lock: asyncio.Lock | None = None
 
     def set_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
+        self._clients_lock = asyncio.Lock()
 
     # ── called from async (WebSocket handler) ────────────────────────────────
 
     async def connect(self, ws) -> None:
-        with self._clients_lock:
+        async with self._clients_lock:
             self._clients.append(ws)
         await ws.send_json({"type": "status", "value": "idle"})
 
     async def disconnect(self, ws) -> None:
-        with self._clients_lock:
-            self._clients.discard(ws) if hasattr(self._clients, 'discard') else None
+        async with self._clients_lock:
             if ws in self._clients:
                 self._clients.remove(ws)
 
     async def _broadcast(self, data: dict) -> None:
-        with self._clients_lock:
+        async with self._clients_lock:
             clients = list(self._clients)
         for ws in clients:
             try:
