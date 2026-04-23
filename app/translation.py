@@ -12,7 +12,7 @@ _client = None
 def _get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key, timeout=15.0)
     return _client
 
 
@@ -34,7 +34,7 @@ def translate(text: str, src_lang: str, tgt_lang: str) -> str:
     src = _LANG_NAMES[src_lang]
     tgt = _LANG_NAMES[tgt_lang]
     response = _get_client().messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=512,
         system=_SYSTEM,
         messages=[
